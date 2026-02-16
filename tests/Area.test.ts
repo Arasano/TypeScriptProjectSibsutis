@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { calculateArea } from '../src/area'
+import { calculateArea } from '../src/Area'
 
 describe('calculateArea', () => {
 
