@@ -1,12 +1,12 @@
 // Cоздаём тип ФУНКЦИИ.
 // Это не функция. Это описание формы функции.
-type StringFormatter = (
+export type StringFormatter = (
     value: string,
     uppercase?: boolean
 ) => string;
 
 
-const capitalizeFirstLetter: StringFormatter = (
+export const capitalizeFirstLetter: StringFormatter = (
     value,
     uppercase = false
 ) => {
@@ -17,7 +17,7 @@ const capitalizeFirstLetter: StringFormatter = (
 };
 
 
-const trimAndFormat: StringFormatter = (
+export const trimAndFormat: StringFormatter = (
     value,
     uppercase = false
 ) => {
