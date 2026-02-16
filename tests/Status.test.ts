@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { getStatusColor } from '../src/status'
+import { getStatusColor } from '../src/Status'
 
 describe('getStatusColor', () => {
 
