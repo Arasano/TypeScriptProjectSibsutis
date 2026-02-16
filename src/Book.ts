@@ -1,11 +1,11 @@
-interface Book {
+export interface Book {
     title: string;
     author: string;
     year?: number;
     genre: 'fiction' | 'non-fiction'; // Union Type — это когда переменная может быть ТОЛЬКО одним из перечисленных значений. Через знак | (или).
 }
 
-function createBook(book: Book): Book {
+export function createBook(book: Book): Book {
     return book;
 }
 
