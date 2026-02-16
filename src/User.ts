@@ -1,11 +1,11 @@
-interface User {
+export interface User {
     id: number;
     name: string;
     email?: string;    // ? означает, что поле НЕобяз
     isActive: boolean;
 }
 
-function createUser(
+export function createUser(
     id: number,
     name: string,
     email?: string,
