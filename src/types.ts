@@ -9,6 +9,11 @@ export type Group<T, K extends keyof T> = {
     items: T[];
 };
 
+export type Step<TArr, UArr, S extends string> = {
+    stage: S;
+    transform: (data: TArr) => UArr;
+};
+
 export type GroupBy<T> = <K extends keyof T>(key: K) => Transform<Group<T, K>>;
 
 export type GroupTransform<T, K extends keyof T> = (groups: Group<T, K>[]) => Group<T, K>[];
