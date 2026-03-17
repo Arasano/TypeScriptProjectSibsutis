@@ -1,5 +1,6 @@
 {
   "devDependencies": {
+    "@types/node": "^25.5.0",
     "vitest": "^4.0.18"
   },
   "scripts": {
