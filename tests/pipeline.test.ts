@@ -1,4 +1,3 @@
-// pipeline.test.ts
 import { describe, it, expect, expectTypeOf  } from 'vitest';
 import { where, sort, groupBy, having } from '../src/pipeline';
 import { query } from '../src/query';
