@@ -1,122 +1,97 @@
-import { useState, useEffect } from 'react';
-import BookCard from './components/BookCard';
-import { Book } from './types/Book';
+import React, { useState, useEffect, useCallback } from 'react';
+import WeatherCard from './components/WeatherCard/WeatherCard';
+import Forecast from './components/Forecast/Forecast';
+import AirPollution from './components/AirPollution/AirPollution';
+import CitySearch from './components/CitySearch/CitySearch';
+import { weatherApi } from './services/weatherApi';
+import { getWeatherGradient } from './utils/weatherStyles';
+import { WeatherData, ForecastData, AirPollutionData, CityInfo } from './types/Weather';
 import './App.css';
 
 function App() {
-    const [books, setBooks] = useState<Book[]>([]);
+    const [weather, setWeather] = useState<WeatherData | null>(null);
+    const [forecast, setForecast] = useState<ForecastData | null>(null);
+    const [pollution, setPollution] = useState<AirPollutionData | null>(null);
+    const [currentCity, setCurrentCity] = useState<CityInfo>({
+        name: 'Moscow',
+        lat: 55.7558,
+        lon: 37.6173,
+        country: 'RU',
+    });
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
+    const fetchData = useCallback(async () => {
+        setLoading(true);
+        setError(null);
+        try {
+            const [weatherData, forecastData, pollutionData] = await Promise.all([
+                weatherApi.getCurrentWeather(currentCity.lat, currentCity.lon),
+                weatherApi.getForecast(currentCity.lat, currentCity.lon),
+                weatherApi.getAirPollution(currentCity.lat, currentCity.lon),
+            ]);
+
+            setWeather(weatherData);
+            setForecast(forecastData);
+            setPollution(pollutionData);
+        } catch (err) {
+            setError('Failed to fetch weather data. Please try again.');
+            console.error(err);
+        } finally {
+            setLoading(false);
+        }
+    }, [currentCity]);
+
     useEffect(() => {
-        const fetchBooks = async () => {
-            try {
-                const response = await fetch('https://fakeapi.extendsclass.com/books');
-                if (!response.ok) {
-                    throw new Error('Ошибка при получении книг');
-                }
-                const booksData: Book[] = await response.json();
+        fetchData();
+        const interval = setInterval(fetchData, 3 * 60 * 60 * 1000);// refresh every 3 hours
 
-                // Загружаем обложки параллельно
-                const booksWithCovers = await Promise.all(
-                    booksData.map(async (book) => {
-                        let coverUrl = null;
+        return () => clearInterval(interval);
+    }, [fetchData]);
 
-                        // Способ 1: Open Library по ISBN
-                        if (book.isbn) {
-                            try {
-                                const cleanIsbn = book.isbn.replace(/[-\s]/g, '');
-                                const openLibResponse = await fetch(
-                                    `https://covers.openlibrary.org/b/isbn/${cleanIsbn}-M.jpg`
-                                );
+    const handleCitySelect = (city: CityInfo) => {
+        console.log('City selected:', city);
+        setCurrentCity(city);
+        setWeather(null);
+        setForecast(null);
+        setPollution(null);
+    };
 
-                                if (openLibResponse.ok) {
-                                    coverUrl = `https://covers.openlibrary.org/b/isbn/${cleanIsbn}-M.jpg`;
-                                }
-                            } catch (err) {
-                                console.log(`Open Library не нашла обложку для ISBN ${book.isbn}`);
-                            }
-                        }
-
-                        // Способ 2: Google Books по названию (если не нашли по ISBN)
-                        if (!coverUrl && book.title) {
-                            try {
-                                const query = encodeURIComponent(`${book.title} ${book.authors[0] || ''}`.substring(0, 100));
-                                const googleResponse = await fetch(
-                                    `https://www.googleapis.com/books/v1/volumes?q=${query}&maxResults=1&key=AIzaSyDxrSLjVbGJz8mR8qQ7VqVqVqVqVqVqVqV`
-                                );
-
-                                if (googleResponse.ok) {
-                                    const googleData = await googleResponse.json();
-                                    if (googleData.items && googleData.items.length > 0) {
-                                        coverUrl = googleData.items[0].volumeInfo.imageLinks?.thumbnail ||
-                                            googleData.items[0].volumeInfo.imageLinks?.smallThumbnail;
-                                    }
-                                }
-                            } catch (err) {
-                                console.log(`Google Books не нашла обложку для "${book.title}"`);
-                            }
-                        }
-
-                        // Способ 3: Open Library поиск по названию
-                        if (!coverUrl && book.title) {
-                            try {
-                                const query = encodeURIComponent(book.title.substring(0, 50));
-                                const searchResponse = await fetch(
-                                    `https://openlibrary.org/search.json?title=${query}&limit=1`
-                                );
-
-                                if (searchResponse.ok) {
-                                    const searchData = await searchResponse.json();
-                                    if (searchData.docs && searchData.docs.length > 0 && searchData.docs[0].cover_i) {
-                                        coverUrl = `https://covers.openlibrary.org/b/id/${searchData.docs[0].cover_i}-M.jpg`;
-                                    }
-                                }
-                            } catch (err) {
-                                console.log(`Open Library search не нашла обложку для "${book.title}"`);
-                            }
-                        }
-
-                        return { ...book, coverImage: coverUrl };
-                    })
-                );
-
-                setBooks(booksWithCovers);
-                setLoading(false);
-            } catch (err) {
-                setError(err instanceof Error ? err.message : 'Произошла ошибка');
-                setLoading(false);
-            }
+    const getBackgroundStyle = () => {
+        if (!weather) return {};
+        const isNight = new Date().getHours() < 6 || new Date().getHours() > 20;
+        return {
+            background: getWeatherGradient(weather.weather[0].main, isNight),
+            minHeight: '100vh',
+            padding: '20px',
+            transition: 'background 0.5s ease',
         };
+    };
 
-        fetchBooks();
-    }, []);
-
-    if (loading) {
+    if (loading && !weather) {
         return (
-            <div className="app">
-                <h1>Библиотека книг</h1>
-                <p className="loading">Загрузка книг...</p>
-            </div>
-        );
-    }
-
-    if (error) {
-        return (
-            <div className="app">
-                <h1>Библиотека книг</h1>
-                <p className="error">Ошибка: {error}</p>
+            <div className="app-loading">
+                <div className="loading-spinner">Loading weather data...</div>
             </div>
         );
     }
 
     return (
-        <div className="app">
-            <h1>Библиотека книг</h1>
-            <div className="books-grid">
-                {books.map((book) => (
-                    <BookCard key={book.id} book={book} />
-                ))}
+        <div className="app" style={getBackgroundStyle()}>
+            <div className="app-container">
+                <CitySearch onCitySelect={handleCitySelect} />
+
+                {error && <div className="error-message">{error}</div>}
+
+                <div className="weather-grid">
+                    {weather && <WeatherCard weather={weather} cityName={currentCity.name} />}
+                    {forecast && <Forecast forecast={forecast} />}
+                    {pollution && <AirPollution pollution={pollution} />}
+                </div>
+
+                <button onClick={fetchData} className="refresh-button" disabled={loading}>
+                    {loading ? 'Updating...' : 'Refresh'}
+                </button>
             </div>
         </div>
     );
